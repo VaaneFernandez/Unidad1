@@ -32,7 +32,7 @@ namespace sintaxis3
             else
             {                
                 throw new Error(bitacora, "Error de sintaxis: Se espera un " + espera + " (" + linea + ", " + caracter + ")");
-            }
+            } 
         }
 
         public void match(clasificaciones espera)

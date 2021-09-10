@@ -12,7 +12,7 @@ namespace sintaxis3
             this.nombre = nombre;
             this.tipoDato = tipoDato;
             valor = "";
-        }
+        } 
 
         public void setValor(string nuevoValor)
         {

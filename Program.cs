@@ -6,7 +6,7 @@ namespace sintaxis3
     {
         static void Main(string[] args)
         {            
-            try
+            try 
             {
                 using (Lenguaje l = new Lenguaje("C:\\Archivos\\suma.cpp"))                
                 {

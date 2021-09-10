@@ -391,7 +391,7 @@ namespace sintaxis3
             {
                 return 23;
             }
-            else if (t == '}')
+            else if (t == '}') 
             {
                 return 24;
             }

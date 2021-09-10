@@ -35,7 +35,7 @@ namespace sintaxis3
             }
             // else levantar excepción de stack underflow
 
-            return 0;
+            return 0; 
         }
 
         public void display(StreamWriter bitacora)
