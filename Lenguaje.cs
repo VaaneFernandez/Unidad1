@@ -4,18 +4,30 @@ using System.Text;
 
 // Requerimiento 1: Implementar las secuencias de escape: \n, \t cuando se imprime una cadena y 
 //                  eliminar las dobles comillas.
+// Requerimiento 2: Levantar excepciones en la clase Stack.
+// Requerimiento 3: Agregar el tipo de dato en el Inserta de ListaVariables.
+// Requerimiento 4: Validar existencia o duplicidad de variables. Mensaje de error: 
+//                  "Error de sintaxis: La variable (x26) no ha sido declarada."
+//                  "Error de sintaxis: La variables (x26) está duplicada." 
+// Requerimiento 5: Modificar el valor de la variable o constante al momento de su declaración.
 
 namespace sintaxis3
 {
     class Lenguaje: Sintaxis
     {
+        Stack s;
+        ListaVariables l;
         public Lenguaje()
-        {
+        {            
+            s = new Stack(5);
+            l = new ListaVariables();
             Console.WriteLine("Iniciando analisis gramatical.");
         }
 
         public Lenguaje(string nombre): base(nombre)
         {
+            s = new Stack(5);
+            l = new ListaVariables();
             Console.WriteLine("Iniciando analisis gramatical.");
         }
 
@@ -24,6 +36,7 @@ namespace sintaxis3
         {
             Libreria();
             Main();
+            l.imprime(bitacora);
         }
 
         // Libreria -> (#include <identificador(.h)?> Libreria) ?
@@ -72,7 +85,18 @@ namespace sintaxis3
         // Lista_IDs -> identificador (= Expresion)? (,Lista_IDs)? 
         private void Lista_IDs()
         {          
+            string nombre = getContenido();
             match(clasificaciones.identificador); // Validar duplicidad
+
+            if (!l.Existe(nombre))
+            {
+                l.Inserta(nombre, Variable.tipo.CHAR);
+            }
+            else
+            {
+                // Levantar excepción
+                throw new Error(bitacora, "Error de sintaxis: Variable duplicada (" + nombre + ") " + "(" + linea + ", " + caracter + ")");
+            }                
 
             if (getClasificacion() == clasificaciones.asignacion)
             {
@@ -116,6 +140,7 @@ namespace sintaxis3
             }
             else if (getContenido() == "cin")
             {
+                // Requerimiento 5
                 match("cin");
                 match(clasificaciones.flujoEntrada);
                 match(clasificaciones.identificador); // Validar existencia
@@ -137,18 +162,24 @@ namespace sintaxis3
             }            
             else
             {
+                string nombre = getContenido();
                 match(clasificaciones.identificador); // Validar existencia
                 match(clasificaciones.asignacion);
 
+                string valor;
+
                 if (getClasificacion() == clasificaciones.cadena)
-                {
-                    match(clasificaciones.cadena);
+                {           
+                    valor = getContenido();         
+                    match(clasificaciones.cadena);                    
                 }
                 else
-                {
+                {                    
                     Expresion();
+                    valor = s.pop(bitacora).ToString();                  
                 }                
 
+                l.setValor(nombre, valor);
                 match(clasificaciones.finSentencia);
             }
         }
@@ -195,14 +226,23 @@ namespace sintaxis3
                 match(clasificaciones.numero); 
             }
             else if (getClasificacion() == clasificaciones.cadena)
-            {
+            {                                
                 Console.Write(getContenido());
                 match(clasificaciones.cadena);
             }
             else
             {
-                Console.Write(getContenido());
-                match(clasificaciones.identificador); // Validar existencia
+                string nombre = getContenido();
+                if (l.Existe(nombre))
+                {
+                    Console.Write(l.getValor(nombre));
+                    match(clasificaciones.identificador); // Validar existencia 
+                }
+                else
+                {
+
+                }
+                               
             }
 
             if (getClasificacion() == clasificaciones.flujoSalida)
@@ -247,9 +287,23 @@ namespace sintaxis3
         {
             if (getClasificacion() == clasificaciones.operadorTermino)
             {
-                Console.Write(getContenido() + " ");
+                string operador = getContenido();                              
                 match(clasificaciones.operadorTermino);
                 Termino();
+                float e1 = s.pop(bitacora), e2 = s.pop(bitacora);  
+                // Console.Write(operador + " ");
+
+                switch(operador)
+                {
+                    case "+":
+                        s.push(e2+e1, bitacora);
+                        break;
+                    case "-":
+                        s.push(e2-e1, bitacora);
+                        break;                    
+                }
+
+                s.display(bitacora);
             }
         }
         // Termino -> Factor PorFactor
@@ -263,9 +317,23 @@ namespace sintaxis3
         {
             if (getClasificacion() == clasificaciones.operadorFactor)
             {
-                Console.Write(getContenido() + " ");
+                string operador = getContenido();                
                 match(clasificaciones.operadorFactor);
                 Factor();
+                float e1 = s.pop(bitacora), e2 = s.pop(bitacora); 
+                // Console.Write(operador + " ");
+
+                switch(operador)
+                {
+                    case "*":
+                        s.push(e2*e1, bitacora);                        
+                        break;
+                    case "/":
+                        s.push(e2/e1, bitacora);
+                        break;                    
+                }
+
+                s.display(bitacora);
             }
         }
         // Factor -> identificador | numero | ( Expresion )
@@ -274,11 +342,16 @@ namespace sintaxis3
             if (getClasificacion() == clasificaciones.identificador)
             {
                 Console.Write(getContenido() + " ");
+
+                s.push(float.Parse(l.getValor(getContenido())), bitacora);
+                s.display(bitacora);
                 match(clasificaciones.identificador); // Validar existencia
             }
             else if (getClasificacion() == clasificaciones.numero)
             {
-                Console.Write(getContenido() + " ");
+                // Console.Write(getContenido() + " ");
+                s.push(float.Parse(getContenido()), bitacora);
+                s.display(bitacora);
                 match(clasificaciones.numero);
             }
             else
@@ -329,7 +402,7 @@ namespace sintaxis3
         {
             match("do");
 
-            BloqueInstrucciones(); 
+            BloqueInstrucciones();
 
             match("while");
 
@@ -342,6 +415,5 @@ namespace sintaxis3
         // x26 = (3 + 5) * 8 - (10 - 4) / 2
         // x26 = 3 + 5 * 8 - 10 - 4 / 2
         // x26 = 3 5 + 8 * 10 4 - 2 / -
-        //;
     }
 }
